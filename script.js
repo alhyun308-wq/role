@@ -60,6 +60,14 @@ function normalizeStudentName(value) {
       }
     }
   }
+  // 시트 응답에 예측하지 못한 키가 사용된 경우에도 이름을 추출합니다.
+  if (value && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      if (/^(id|번호|number|index|row|role|역할)$/i.test(key)) continue;
+      const name = normalizeStudentName(item);
+      if (name) return name;
+    }
+  }
   return "";
 }
 
@@ -67,6 +75,27 @@ function normalizeStudents(students) {
   return Array.isArray(students)
     ? students.map(normalizeStudentName).filter(Boolean)
     : [];
+}
+
+// 역할의 이름이 없는 시트 데이터는 배정 화면에 넣지 않습니다.
+function normalizeRoles(roles) {
+  if (!Array.isArray(roles)) return [];
+  const themes = ["blue", "yellow", "green", "pink", "purple", "orange"];
+  return roles.map((role, index) => {
+    if (typeof role === "string") role = { name: role };
+    if (!role || typeof role !== "object") return null;
+    const name = normalizeStudentName(role.name ?? role["역할"] ?? role["역할명"] ??
+      role.roleName ?? role.role ?? role.title ?? role["이름"]);
+    if (!name) return null;
+    const emoji = normalizeStudentName(role.emoji ?? role["이모지"] ?? role.icon) || "💼";
+    const duty = normalizeStudentName(role.duty ?? role["임무"] ?? role["주요 임무"] ??
+      role.description ?? role.task) || "";
+    return {
+      id: role.id ?? index + 1,
+      name, emoji, duty,
+      theme: themes.includes(role.theme) ? role.theme : themes[index % themes.length]
+    };
+  }).filter(Boolean);
 }
 
 // 3. 로컬 스토리지 불러오기 및 저장
@@ -77,6 +106,9 @@ function loadState() {
       const parsed = JSON.parse(saved);
       state = { ...state, ...parsed };
       state.students = normalizeStudents(state.students);
+      // 과거에 저장된 빈 역할 이름을 복구합니다.
+      const validRoles = normalizeRoles(state.roles);
+      state.roles = validRoles.length ? validRoles : JSON.parse(JSON.stringify(DEFAULT_ROLES));
       if (Array.isArray(state.assignments)) {
         state.assignments = state.assignments.map(a => ({
           ...a,
@@ -980,7 +1012,15 @@ async function handleGasAction() {
           }
         }
         if (Array.isArray(data.roles) && data.roles.length > 0) {
-          state.roles = data.roles;
+          const roles = normalizeRoles(data.roles);
+          // 유효한 역할 이름이 없는 시트 데이터로 기존 역할을 덮어쓰지 않습니다.
+          if (roles.length > 0) {
+            state.roles = roles;
+          } else {
+            console.warn("시트 역할 데이터의 이름 필드를 확인해 주세요.", data.roles);
+            const existingRoles = normalizeRoles(state.roles);
+            state.roles = existingRoles.length ? existingRoles : JSON.parse(JSON.stringify(DEFAULT_ROLES));
+          }
         }
         if (data.className) {
           state.className = data.className;
@@ -1122,6 +1162,8 @@ function renderRoleEditor() {
   if (!roleList) return;
 
   roleList.innerHTML = "";
+  const validRoles = normalizeRoles(state.roles);
+  state.roles = validRoles.length ? validRoles : JSON.parse(JSON.stringify(DEFAULT_ROLES));
   state.roles.forEach((role, idx) => {
     const item = document.createElement("div");
     item.className = "tag-item";
