@@ -1,0 +1,6 @@
+{
+  "name": "우당탕탕 우리 반 1인 1역할 배정기",
+  "description": "초등학교 교실을 위한 귀엽고 산뜻한 1인 1역할 무작위 배정 웹 애플리케이션입니다. 1:1 랜덤 매칭, A4 게시판 인쇄, 구글 스프레드시트 연동 지원을 제공합니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
