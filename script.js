@@ -587,6 +587,17 @@ function cancelSwap() {
 
 // 10. 뷰 렌더링
 function renderAllViews() {
+  state.students = normalizeStudents(state.students);
+  const cleanRoles = normalizeRoles(state.roles);
+  state.roles = cleanRoles.length ? cleanRoles : JSON.parse(JSON.stringify(DEFAULT_ROLES));
+  // 이전 버전에서 저장된 역할 객체도 현재 역할 데이터와 동기화합니다.
+  if (Array.isArray(state.assignments)) {
+    state.assignments = state.assignments.map(a => {
+      const roleId = a?.role?.id;
+      const currentRole = state.roles.find(r => String(r.id) === String(roleId));
+      return currentRole ? { ...a, role: currentRole, student: normalizeStudentName(a.student) || "(공석)" } : a;
+    }).filter(a => state.roles.some(r => String(r.id) === String(a?.role?.id)));
+  }
   renderCards();
   renderTable();
   updateStatusSummary();
