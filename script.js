@@ -220,11 +220,16 @@ function assignRoles() {
   const rollBtn = document.getElementById("btn-roll-roles");
   if (rollBtn) {
     rollBtn.classList.add("is-rolling");
-    rollBtn.innerHTML = '<span class="dice-icon">🎲</span> 신나게 섞는 중...';
+    rollBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+      배정하는 중...
+    `;
   }
 
   // 카드 펄스 효과
-  const cardElements = document.querySelectorAll(".role-card");
+  const cardElements = document.querySelectorAll(".shadcn-card");
   cardElements.forEach(card => card.classList.add("shuffling"));
 
   // 롤링 애니메이션 (약 0.8초간 틱 소리와 함께 이름 교체 효과)
@@ -243,7 +248,7 @@ function assignRoles() {
 
 // 롤링 중 임의로 이름이 돌아가는 시각적 재미
 function renderShufflingPreview() {
-  const nameSpans = document.querySelectorAll(".student-name");
+  const nameSpans = document.querySelectorAll(".card-student-name");
   nameSpans.forEach(el => {
     const randName = state.students[Math.floor(Math.random() * state.students.length)] || "???";
     el.textContent = randName;
@@ -287,7 +292,17 @@ function finalizeAssignment() {
   const rollBtn = document.getElementById("btn-roll-roles");
   if (rollBtn) {
     rollBtn.classList.remove("is-rolling");
-    rollBtn.innerHTML = '<span class="dice-icon">🎲</span> 역할 배정하기';
+    rollBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+        <path d="M16 8h.01"/>
+        <path d="M8 8h.01"/>
+        <path d="M8 16h.01"/>
+        <path d="M16 16h.01"/>
+        <path d="M12 12h.01"/>
+      </svg>
+      역할 배정하기
+    `;
   }
 
   // 팡파레 효과음 및 폭죽 축하!
@@ -317,30 +332,33 @@ function renderCards() {
     const isAssigned = Boolean(assigned);
 
     const card = document.createElement("div");
-    card.className = "role-card" + (isAssigned ? " just-assigned" : "");
+    card.className = "shadcn-card" + (isAssigned ? " just-assigned" : "");
     card.setAttribute("data-theme", role.theme || "yellow");
 
     card.innerHTML = `
-      <div class="card-header">
-        <span class="student-num-badge" title="역할 번호">${idx + 1}</span>
-        <span class="card-status-pill ${isAssigned ? "pill-assigned" : "pill-empty"}">
-          ${isAssigned ? "⭐ 임명완료" : "대기"}
+      <div class="card-top-row">
+        <div class="card-index">
+          <span style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">#</span>
+          <span>${idx + 1}</span>
+        </div>
+        <span class="badge ${isAssigned ? "badge-success" : "badge-muted"}">
+          ${isAssigned ? "임명완료" : "대기"}
         </span>
       </div>
-      <div class="card-body">
-        <div class="role-avatar" title="${role.name}">
+      <div class="card-role-header">
+        <div class="card-role-avatar" title="${escapeHtml(role.name)}">
           ${role.emoji || "⭐"}
         </div>
-        <div class="card-info">
-          <h4 class="role-title">${escapeHtml(role.name)}</h4>
-          <div class="student-name-box">
-            <span class="student-label">담당:</span>
-            <span class="student-name ${isAssigned ? "" : "waiting"}">${escapeHtml(studentName)}</span>
+        <div class="card-role-info">
+          <div class="card-role-name">${escapeHtml(role.name)}</div>
+          <div class="card-student-box">
+            <span class="student-tag-label">담당:</span>
+            <span class="card-student-name ${isAssigned ? "" : "waiting"}">${escapeHtml(studentName)}</span>
           </div>
         </div>
       </div>
-      <div class="card-duty">
-        <strong>임무:</strong> ${escapeHtml(role.duty || "친구들과 함께 성실히 역할을 수행해요.")}
+      <div class="card-duty-box">
+        <strong>임무:</strong> ${escapeHtml(role.duty || "교실을 위해 솔선수범해요.")}
       </div>
     `;
 
@@ -360,17 +378,17 @@ function renderTable() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td style="font-weight: 800; color: #64748B;">${idx + 1}</td>
+      <td style="font-weight: 600; color: hsl(var(--muted-foreground));">${idx + 1}</td>
       <td>
-        <div class="table-role-cell">
-          <span class="table-avatar">${role.emoji || "⭐"}</span>
+        <div class="table-role-inline">
+          <span style="font-size: 1.15rem;">${role.emoji || "⭐"}</span>
           <span>${escapeHtml(role.name)}</span>
         </div>
       </td>
-      <td style="font-weight: 800; color: #1E293B; font-size: 1rem;">${escapeHtml(studentName)}</td>
-      <td style="color: #475569; font-size: 0.88rem;">${escapeHtml(role.duty || "")}</td>
+      <td style="font-weight: 700; color: hsl(var(--foreground)); font-size: 0.95rem;">${escapeHtml(studentName)}</td>
+      <td style="color: hsl(var(--muted-foreground)); font-size: 0.8125rem;">${escapeHtml(role.duty || "")}</td>
       <td>
-        <span class="card-status-pill ${assigned ? "pill-assigned" : "pill-empty"}">
+        <span class="badge ${assigned ? "badge-success" : "badge-muted"}">
           ${assigned ? "배정완료" : "미배정"}
         </span>
       </td>
@@ -389,17 +407,29 @@ function updateStatusSummary() {
 
   if (assignedStatusEl) {
     if (state.assignments.length > 0) {
-      assignedStatusEl.className = "status-chip complete-badge";
-      assignedStatusEl.innerHTML = `<span>✨</span> <strong>배정 완료</strong> (${state.assignedDate})`;
+      assignedStatusEl.className = "badge badge-success";
+      assignedStatusEl.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:3px;">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        배정 완료 (${state.assignedDate})
+      `;
     } else {
-      assignedStatusEl.className = "status-chip ready-badge";
-      assignedStatusEl.innerHTML = `<span>⏳</span> <strong>배정 대기중</strong>`;
+      assignedStatusEl.className = "badge badge-secondary";
+      assignedStatusEl.textContent = "배정 대기중";
     }
   }
 
   // 상단 학급 태그 반영
   const classTagEl = document.getElementById("class-name-tag");
-  if (classTagEl) classTagEl.textContent = state.className || "우리 반";
+  if (classTagEl) {
+    classTagEl.innerHTML = `
+      ${escapeHtml(state.className || "3학년 2반")}
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+      </svg>
+    `;
+  }
 }
 
 function updatePrintHeader() {
@@ -572,10 +602,14 @@ function renderStudentEditor() {
   tagList.innerHTML = "";
   state.students.forEach((name, idx) => {
     const chip = document.createElement("div");
-    chip.className = "editable-chip";
+    chip.className = "tag-item";
     chip.innerHTML = `
       <span>${idx + 1}. ${escapeHtml(name)}</span>
-      <button type="button" onclick="removeStudent(${idx})" title="삭제">×</button>
+      <button type="button" onclick="removeStudent(${idx})" title="삭제" aria-label="삭제">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        </svg>
+      </button>
     `;
     tagList.appendChild(chip);
   });
@@ -594,7 +628,7 @@ function addStudentFromInput() {
     renderStudentEditor();
     renderAllViews();
     input.value = "";
-    showToast(`👤 학생 ${names.length}명이 추가되었습니다.`);
+    showToast(`학생 ${names.length}명이 추가되었습니다.`);
   }
 }
 
@@ -624,16 +658,20 @@ function renderRoleEditor() {
   roleList.innerHTML = "";
   state.roles.forEach((role, idx) => {
     const item = document.createElement("div");
-    item.className = "editable-chip";
+    item.className = "tag-item";
     item.style.width = "100%";
     item.style.justifyContent = "space-between";
     item.innerHTML = `
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 1.2rem;">${role.emoji || "💼"}</span>
+        <span style="font-size: 1.15rem;">${role.emoji || "💼"}</span>
         <strong>${escapeHtml(role.name)}</strong>
-        <span style="font-size: 0.8rem; color: #64748B;">(${escapeHtml(role.duty || "")})</span>
+        <span style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">(${escapeHtml(role.duty || "")})</span>
       </div>
-      <button type="button" onclick="removeRole(${idx})" title="역할 삭제" style="font-size: 1.2rem;">×</button>
+      <button type="button" onclick="removeRole(${idx})" title="역할 삭제" aria-label="삭제">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        </svg>
+      </button>
     `;
     roleList.appendChild(item);
   });

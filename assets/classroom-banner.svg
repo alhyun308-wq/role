@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" width="100%" height="100%">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0F2FE"/>
+      <stop offset="50%" stop-color="#FEF3C7"/>
+      <stop offset="100%" stop-color="#FCE7F3"/>
+    </linearGradient>
+    <linearGradient id="boardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#14532D"/>
+      <stop offset="100%" stop-color="#052E16"/>
+    </linearGradient>
+    <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#4F46E5" flood-opacity="0.12"/>
+    </filter>
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- 배경 둥근 카드 -->
+  <rect x="0" y="0" width="960" height="320" rx="28" fill="url(#skyGrad)"/>
+
+  <!-- 배경 패턴: 은은한 색종이 조각들 -->
+  <g opacity="0.45">
+    <circle cx="80" cy="50" r="14" fill="#F472B6"/>
+    <circle cx="210" cy="40" r="8" fill="#60A5FA"/>
+    <circle cx="340" cy="70" r="12" fill="#FBBF24"/>
+    <circle cx="750" cy="50" r="16" fill="#34D399"/>
+    <circle cx="880" cy="70" r="10" fill="#A78BFA"/>
+    <polygon points="140,80 152,60 164,80" fill="#F87171"/>
+    <polygon points="820,90 832,70 844,90" fill="#38BDF8"/>
+    <rect x="650" y="40" width="16" height="16" rx="4" transform="rotate(25 658 48)" fill="#FCD34D"/>
+    <rect x="260" y="60" width="14" height="14" rx="3" transform="rotate(-15 267 67)" fill="#A7F3D0"/>
+  </g>
+
+  <!-- 교실 바닥선 -->
+  <path d="M 0 260 Q 480 250 960 260 L 960 320 L 0 320 Z" fill="#F8FAFC" opacity="0.9"/>
+  <line x1="0" y1="260" x2="960" y2="260" stroke="#CBD5E1" stroke-width="3" stroke-dasharray="10 8"/>
+
+  <!-- 중앙 칠판 (우리들의 1인 1역할) -->
+  <g filter="url(#softShadow)">
+    <rect x="270" y="35" width="420" height="190" rx="16" fill="url(#woodGrad)"/>
+    <rect x="282" y="47" width="396" height="166" rx="10" fill="url(#boardGrad)"/>
+    
+    <!-- 칠판 분필 글씨 & 그림 -->
+    <text x="480" y="90" font-family="'Pretendard', sans-serif" font-weight="900" font-size="22" fill="#FEF08A" text-anchor="middle" letter-spacing="1">
+      ✨ 3학년 2반 모두의 행복 교실 ✨
+    </text>
+    <line x1="320" y1="104" x2="640" y2="104" stroke="#86EFAC" stroke-width="2" stroke-linecap="round" stroke-dasharray="6 4"/>
+    <text x="480" y="138" font-family="'Pretendard', sans-serif" font-weight="800" font-size="16" fill="#FFFFFF" text-anchor="middle">
+      "내가 맡은 작은 역할, 우리 반의 커다란 기쁨!"
+    </text>
+    <text x="480" y="170" font-family="'Pretendard', sans-serif" font-weight="600" font-size="13" fill="#BAE6FD" text-anchor="middle">
+      🧼 칠판닦기 • 💡 에너지절약 • 📚 책장정리 • 🌱 화분돌보기
+    </text>
+
+    <!-- 분필 및 지우개 받침대 -->
+    <rect x="360" y="210" width="240" height="8" rx="4" fill="#D97706"/>
+    <rect x="420" y="206" width="30" height="8" rx="2" fill="#F87171"/>
+    <rect x="460" y="206" width="28" height="8" rx="2" fill="#FDE047"/>
+    <rect x="500" y="205" width="36" height="10" rx="3" fill="#1E293B"/>
+  </g>
+
+  <!-- 왼쪽 캐릭터 1: 청소/화분 물주는 귀여운 토끼 학생 -->
+  <g transform="translate(90, 110)" filter="url(#badgeShadow)">
+    <!-- 토끼 귀 -->
+    <ellipse cx="60" cy="25" rx="10" ry="30" fill="#FFFFFF" transform="rotate(-15 60 25)"/>
+    <ellipse cx="60" cy="25" rx="5" ry="20" fill="#FBCFE8" transform="rotate(-15 60 25)"/>
+    <ellipse cx="90" cy="25" rx="10" ry="30" fill="#FFFFFF" transform="rotate(15 90 25)"/>
+    <ellipse cx="90" cy="25" rx="5" ry="20" fill="#FBCFE8" transform="rotate(15 90 25)"/>
+
+    <!-- 토끼 얼굴 -->
+    <circle cx="75" cy="70" r="38" fill="#FFFFFF"/>
+    <!-- 볼터치 -->
+    <circle cx="52" cy="78" r="7" fill="#F472B6" opacity="0.6"/>
+    <circle cx="98" cy="78" r="7" fill="#F472B6" opacity="0.6"/>
+    <!-- 눈 -->
+    <ellipse cx="60" cy="68" rx="4" ry="6" fill="#1E293B"/>
+    <circle cx="61" cy="66" r="2" fill="#FFFFFF"/>
+    <ellipse cx="90" cy="68" rx="4" ry="6" fill="#1E293B"/>
+    <circle cx="91" cy="66" r="2" fill="#FFFFFF"/>
+    <!-- 코 & 입 -->
+    <polygon points="75,76 72,72 78,72" fill="#F43F5E"/>
+    <path d="M 71 80 Q 75 84 79 80" stroke="#1E293B" stroke-width="2" fill="none"/>
+
+    <!-- 노란색 멜빵 옷 -->
+    <path d="M 50 105 L 100 105 L 108 160 L 42 160 Z" fill="#FBBF24" rx="8"/>
+    <rect x="58" y="102" width="8" height="30" fill="#F59E0B"/>
+    <rect x="84" y="102" width="8" height="30" fill="#F59E0B"/>
+    <circle cx="62" cy="120" r="3" fill="#FFFFFF"/>
+    <circle cx="88" cy="120" r="3" fill="#FFFFFF"/>
+
+    <!-- 물뿌리개 들고 있음 -->
+    <path d="M 98 120 L 130 115 L 140 135 L 110 140 Z" fill="#38BDF8"/>
+    <path d="M 135 118 L 155 105" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+    <!-- 물방울들 -->
+    <circle cx="162" cy="118" r="3" fill="#60A5FA"/>
+    <circle cx="168" cy="128" r="2.5" fill="#60A5FA"/>
+    <circle cx="158" cy="135" r="2" fill="#60A5FA"/>
+
+    <!-- 작은 화분 새싹 -->
+    <rect x="150" y="145" width="28" height="24" rx="4" fill="#B45309"/>
+    <path d="M 164 145 Q 155 130 145 136 Q 155 145 164 145" fill="#22C55E"/>
+    <path d="M 164 145 Q 173 128 183 134 Q 173 145 164 145" fill="#4ADE80"/>
+  </g>
+
+  <!-- 오른쪽 캐릭터 2: 책과 별봉을 든 귀여운 곰돌이 학생 -->
+  <g transform="translate(730, 110)" filter="url(#badgeShadow)">
+    <!-- 곰 귀 -->
+    <circle cx="45" cy="40" r="16" fill="#D97706"/>
+    <circle cx="45" cy="40" r="9" fill="#FDE68A"/>
+    <circle cx="105" cy="40" r="16" fill="#D97706"/>
+    <circle cx="105" cy="40" r="9" fill="#FDE68A"/>
+
+    <!-- 곰 머리 -->
+    <circle cx="75" cy="72" r="38" fill="#F59E0B"/>
+    <!-- 입 주변 밝은 영역 -->
+    <ellipse cx="75" cy="80" rx="16" ry="12" fill="#FEF3C7"/>
+    <ellipse cx="75" cy="75" rx="6" ry="4" fill="#78350F"/>
+    <path d="M 72 83 Q 75 87 78 83" stroke="#78350F" stroke-width="2" fill="none"/>
+    <!-- 눈 -->
+    <circle cx="58" cy="68" r="4.5" fill="#78350F"/>
+    <circle cx="59" cy="66" r="1.5" fill="#FFFFFF"/>
+    <circle cx="92" cy="68" r="4.5" fill="#78350F"/>
+    <circle cx="93" cy="66" r="1.5" fill="#FFFFFF"/>
+    <!-- 볼터치 -->
+    <circle cx="50" cy="78" r="6" fill="#F87171" opacity="0.6"/>
+    <circle cx="100" cy="78" r="6" fill="#F87171" opacity="0.6"/>
+
+    <!-- 민트색 스웨터 -->
+    <path d="M 50 106 L 100 106 L 106 160 L 44 160 Z" fill="#34D399" rx="8"/>
+    <!-- 스카프 -->
+    <path d="M 60 104 Q 75 116 90 104" stroke="#EF4444" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+    <!-- 손에 든 반짝이는 책 -->
+    <rect x="20" y="120" width="32" height="26" rx="4" fill="#6366F1" transform="rotate(-20 36 133)"/>
+    <line x1="28" y1="122" x2="28" y2="144" stroke="#C7D2FE" stroke-width="2"/>
+    <polygon points="12,110 16,118 24,118 18,124 20,132 12,126 4,132 6,124 0,118 8,118" fill="#FBBF24" transform="scale(0.8) translate(10, 100)"/>
+  </g>
+
+  <!-- 가랜드 장식 (상단에 아기자기하게 걸린 파스텔 삼각 깃발) -->
+  <g>
+    <path d="M 20 20 Q 240 70 480 30 Q 720 70 940 20" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+    <!-- 깃발들 -->
+    <polygon points="60,32 75,36 67,58" fill="#F472B6"/>
+    <polygon points="110,42 125,46 117,68" fill="#FBBF24"/>
+    <polygon points="160,48 175,50 167,72" fill="#38BDF8"/>
+    <polygon points="210,50 225,50 217,72" fill="#4ADE80"/>
+    <polygon points="260,46 275,44 267,66" fill="#A78BFA"/>
+    <polygon points="690,44 705,46 697,68" fill="#F472B6"/>
+    <polygon points="740,50 755,50 747,72" fill="#FBBF24"/>
+    <polygon points="790,48 805,46 797,68" fill="#38BDF8"/>
+    <polygon points="840,40 855,36 847,58" fill="#4ADE80"/>
+    <polygon points="890,30 905,26 897,48" fill="#A78BFA"/>
+  </g>
+</svg>

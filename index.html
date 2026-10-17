@@ -4,134 +4,190 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>우당탕탕 우리 반 1인 1역할 배정기</title>
-    <meta name="description" content="초등학교 교실을 위한 귀엽고 산뜻한 1인 1역할 무작위 배정 웹 애플리케이션입니다. 1:1 랜덤 매칭, A4 게시판 인쇄, 구글 스프레드시트 연동 지원을 제공합니다." />
+    <meta name="description" content="초등학교 교실을 위한 모던하고 직관적인 1인 1역할 무작위 배정 웹 애플리케이션입니다. 1:1 랜덤 매칭, A4 게시판 인쇄, 구글 스프레드시트 연동 지원을 제공합니다." />
     <meta property="og:title" content="우당탕탕 우리 반 1인 1역할 배정기" />
-    <meta property="og:description" content="초등학교 교실을 위한 귀엽고 산뜻한 1인 1역할 무작위 배정 웹 애플리케이션" />
+    <meta property="og:description" content="초등학교 교실을 위한 모던한 1인 1역할 무작위 배정 웹 애플리케이션" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <!-- 배경 폭죽 캔버스 -->
+    <!-- 배경 축하 폭죽 캔버스 -->
     <canvas id="confetti-canvas"></canvas>
 
-    <!-- 메인 앱 컨테이너 -->
+    <!-- 메인 컨테이너 -->
     <div class="app-container">
       
-      <!-- 인쇄 전용 헤더 (화면에서는 숨김, A4 인쇄 시 상단에 깔끔하게 노출) -->
+      <!-- 인쇄 전용 헤더 (A4 출력 시 노출) -->
       <div class="print-only-header">
-        <span id="print-class-name">🌸 [3학년 2반] 우리들의 멋진 1인 1역할 배정표</span>
+        <span id="print-class-name">[3학년 2반] 우리들의 멋진 1인 1역할 배정표</span>
         <span id="print-date">배정일: 2026년 3월 1일</span>
       </div>
 
-      <!-- 상단 헤더 영역 -->
-      <header class="header-wrapper">
-        <div class="header-decor-dots">
-          <span class="dot dot-red"></span>
-          <span class="dot dot-yellow"></span>
-          <span class="dot dot-green"></span>
-        </div>
-
+      <!-- 상단 네비게이션 / 헤더 카드 (shadcn Card) -->
+      <header class="header-card">
         <div class="header-top">
-          <!-- 타이틀 및 학급 뱃지 -->
-          <div class="header-title-box">
-            <div class="header-icon-badge" title="우리 반 1인 1역할">🎒</div>
-            <div class="header-title-content">
+          <!-- 로고 및 타이틀 -->
+          <div class="header-branding">
+            <div class="brand-icon-box" title="우리 반 1인 1역할">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                <path d="M6 6h10"/>
+                <path d="M6 10h10"/>
+              </svg>
+            </div>
+            <div class="brand-texts">
               <h1>
                 우리 반 1인 1역할 배정기
-                <span class="class-tag" id="class-name-tag" title="클릭하여 학급 이름 변경">3학년 2반 ✏️</span>
+                <span class="badge badge-outline" id="class-name-tag" title="클릭하여 학급 이름 변경">
+                  3학년 2반
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                  </svg>
+                </span>
               </h1>
-              <p>모두가 소중한 우리 교실, 즐거운 마음으로 맡은 책임을 다해요!</p>
+              <p>모두가 소중한 우리 교실, 즐거운 마음으로 맡은 책임을 다해요</p>
             </div>
           </div>
 
-          <!-- 상단 툴바: 구글 시트 연동 및 편의 버튼 -->
+          <!-- 상단 툴바 버튼 (shadcn Button outline variants) -->
           <div class="header-actions">
-            <button type="button" class="btn btn-sheet-load" id="btn-sheet-load" title="구글 스프레드시트에서 학생과 역할 데이터 불러오기">
-              <span>🔄</span> 시트 불러오기
+            <button type="button" class="btn btn-outline" id="btn-sheet-load" title="구글 스프레드시트 데이터 불러오기">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M16 21h5v-5"/>
+              </svg>
+              시트 불러오기
             </button>
-            <button type="button" class="btn btn-sheet-save" id="btn-sheet-save" title="배정 결과를 구글 스프레드시트에 저장하기">
-              <span>💾</span> 시트에 결과 저장
+            <button type="button" class="btn btn-outline" id="btn-sheet-save" title="배정 결과를 구글 스프레드시트에 저장">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              시트에 결과 저장
             </button>
-            <button type="button" class="btn btn-edit" id="btn-edit-list" title="학생 이름 및 학급 역할 목록 편집">
-              <span>⚙️</span> 학생·역할 편집
+            <button type="button" class="btn btn-outline" id="btn-edit-list" title="학생 및 역할 목록 편집">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              학생·역할 편집
             </button>
-            <button type="button" class="btn btn-print" id="btn-print-a4" title="교실 게시판 부착용 깔끔한 A4 양식으로 인쇄">
-              <span>🖨️</span> A4 게시판 인쇄
+            <button type="button" class="btn btn-outline" id="btn-print-a4" title="A4 단일 페이지 인쇄">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect width="12" height="8" x="6" y="14"/>
+              </svg>
+              A4 게시판 인쇄
             </button>
           </div>
         </div>
 
-        <!-- 현황 요약 바 -->
+        <!-- 상태 칩 바 -->
         <div class="status-bar">
-          <div class="status-chip">
-            <span>👥</span> 학생: <strong id="stat-student-count">12명</strong>
+          <div class="stat-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            학생: <strong id="stat-student-count">12명</strong>
           </div>
-          <div class="status-chip">
-            <span>💼</span> 역할: <strong id="stat-role-count">12개</strong>
+          <div class="stat-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            역할: <strong id="stat-role-count">12개</strong>
           </div>
-          <div class="status-chip ready-badge" id="stat-assigned-status">
-            <span>⏳</span> <strong>배정 대기중</strong>
+          <div class="status-bar-right">
+            <span class="badge badge-secondary" id="stat-assigned-status">
+              대기중
+            </span>
           </div>
         </div>
       </header>
 
-      <!-- 메인 역할 배정 히어로 카드 -->
+      <!-- shadcn Callout Hero Card (중앙 액션 영역) -->
       <section class="action-hero-card">
-        <div class="action-hero-content">
-          <h2>🎲 두근두근! 오늘의 1인 1역할을 정해볼까요?</h2>
-          <p>버튼을 누르면 12명의 학생과 12개의 학급 역할이 1:1로 공정하고 재미있게 무작위 매칭됩니다.</p>
-          <div class="main-actions-group">
-            <button type="button" class="btn btn-primary-roll" id="btn-roll-roles">
-              <span class="dice-icon">🎲</span> 역할 배정하기
-            </button>
-            <button type="button" class="btn btn-sub-reset" id="btn-reset-assignments" title="현재 배정 초기화">
-              <span>🧹</span> 초기화
-            </button>
-          </div>
+        <div class="hero-tag">
+          <span class="badge badge-secondary">1:1 Random Assigner</span>
+        </div>
+        <h2>학급 1인 1역할 무작위 배정</h2>
+        <p>12명의 학생과 12개의 학급 역할을 공정하고 균등하게 1:1로 매칭합니다.</p>
+        <div class="main-actions-group">
+          <button type="button" class="btn btn-primary btn-lg" id="btn-roll-roles">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+              <path d="M16 8h.01"/>
+              <path d="M8 8h.01"/>
+              <path d="M8 16h.01"/>
+              <path d="M16 16h.01"/>
+              <path d="M12 12h.01"/>
+            </svg>
+            역할 배정하기
+          </button>
+          <button type="button" class="btn btn-outline btn-lg" id="btn-reset-assignments" title="현재 배정 초기화">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            </svg>
+            초기화
+          </button>
         </div>
       </section>
 
-      <!-- 결과 목록 섹션 -->
+      <!-- 배정 현황 섹션 -->
       <main class="results-section">
         <div class="section-header">
           <div class="section-title">
-            <span>✨</span> 우리 반 역할 현황판
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            우리 반 역할 현황
           </div>
-          <div class="view-tabs">
-            <button type="button" class="tab-btn active" id="tab-cards-view">🎴 카드 뷰</button>
-            <button type="button" class="tab-btn" id="tab-table-view">📋 표 뷰</button>
+
+          <!-- shadcn 세그먼트 탭 컨트롤 -->
+          <div class="tabs-list">
+            <button type="button" class="tab-trigger active" id="tab-cards-view">카드 뷰</button>
+            <button type="button" class="tab-trigger" id="tab-table-view">표 뷰</button>
           </div>
         </div>
 
-        <!-- 카드 그리드 뷰 (12개 파스텔 카드) -->
+        <!-- 12개 카드 그리드 뷰 -->
         <div class="cards-grid" id="cards-grid">
-          <!-- script.js에서 동적으로 생성됩니다 -->
+          <!-- script.js에 의해 shadcn-card 컴포넌트로 동적 렌더링 -->
         </div>
 
-        <!-- 표 뷰 (테이블 형태) -->
-        <div class="table-container" id="table-container">
-          <table class="assignment-table">
+        <!-- 표 뷰 (shadcn Table) -->
+        <div class="table-wrapper" id="table-container">
+          <table class="shadcn-table">
             <thead>
               <tr>
-                <th style="width: 60px;">번호</th>
+                <th style="width: 56px;">번호</th>
                 <th style="width: 220px;">역할명</th>
                 <th style="width: 160px;">담당 학생</th>
-                <th>주요 임무 및 활동 내용</th>
-                <th style="width: 100px;">상태</th>
+                <th>주요 활동 및 책임</th>
+                <th style="width: 90px;">상태</th>
               </tr>
             </thead>
             <tbody id="table-body">
-              <!-- script.js에서 동적으로 채워집니다 -->
+              <!-- script.js에 의해 동적 렌더링 -->
             </tbody>
           </table>
         </div>
       </main>
 
-      <!-- 인쇄 전용 푸터 (A4 인쇄 시 하단에 노출되는 담임교사 확인 및 격려 문구) -->
+      <!-- 인쇄 전용 푸터 (A4 인쇄 시 하단 노출) -->
       <div class="print-only-footer">
-        <div class="print-notice">
-          🌱 <strong>안내:</strong> 우리가 함께 가꾸는 행복하고 따뜻한 우리 교실! 서로 돕고 배려하며 맡은 역할을 성실히 실천해요.
+        <div>
+          🌱 <strong>안내:</strong> 우리가 함께 가꾸는 행복한 우리 교실! 맡은 역할을 성실히 실천해요.
         </div>
         <div class="print-signature-box">
           담임교사 확인: _________________ (인)
@@ -140,15 +196,20 @@
 
     </div>
 
-    <!-- 1. 구글 스프레드시트(Apps Script) 연동 모달 -->
-    <div class="modal-overlay" id="gas-modal">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <h3 id="gas-modal-title">📊 구글 스프레드시트 연동</h3>
-          <button type="button" class="modal-close-btn" id="gas-modal-close">&times;</button>
+    <!-- 1. 구글 스프레드시트 연동 모달 (shadcn Dialog) -->
+    <div class="dialog-overlay" id="gas-modal">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h3 id="gas-modal-title">구글 스프레드시트 연동</h3>
+          <button type="button" class="dialog-close" id="gas-modal-close" aria-label="닫기">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18"/>
+              <path d="m6 6 12 12"/>
+            </svg>
+          </button>
         </div>
-        <div class="modal-body">
-          <label class="input-label" for="gas-url-input">Google Apps Script 웹 앱 URL</label>
+        <div class="dialog-body">
+          <label class="form-label" for="gas-url-input">Google Apps Script 웹 앱 URL</label>
           <input 
             type="url" 
             id="gas-url-input" 
@@ -156,56 +217,63 @@
             placeholder="https://script.google.com/macros/s/.../exec"
           />
           <p class="form-hint">
-            💡 <strong>안내:</strong> 다음 단계에서 연동할 Google Apps Script의 [웹 앱 배포 URL]을 입력해 두면, 시트의 명단과 역할을 가져오거나 결과를 시트로 안전하게 전송합니다.
+            💡 <strong>안내:</strong> 다음 단계에서 연동할 Google Apps Script의 [웹 앱 배포 URL]을 등록해 두면, 시트의 명단과 역할을 가져오거나 배정 결과를 시트로 전송할 수 있습니다.
           </p>
 
-          <div style="margin-top: 18px; padding: 14px; background: #F1F5F9; border-radius: 12px; border: 1px dashed #CBD5E1;">
+          <div style="margin-top: 16px; padding: 14px; background: hsl(var(--muted)/0.4); border-radius: var(--radius-md); border: 1px solid hsl(var(--border));">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <strong style="color: #334155; font-size: 0.88rem;">구글 Apps Script 템플릿 코드</strong>
-              <button type="button" class="btn btn-edit" id="btn-copy-gas-script" style="padding: 4px 10px; font-size: 0.8rem;">
-                📋 코드 복사
+              <span style="font-size: 0.8125rem; font-weight: 600; color: hsl(var(--foreground));">Google Apps Script 템플릿</span>
+              <button type="button" class="btn btn-outline" id="btn-copy-gas-script" style="height: 28px; padding: 0 10px; font-size: 0.75rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                </svg>
+                코드 복사
               </button>
             </div>
-            <p style="font-size: 0.8rem; color: #64748B; margin: 0;">
-              스프레드시트 [확장 프로그램] > [Apps Script]에 붙여넣고 [웹 앱으로 배포(액세스 권한: 모든 사용자)]하시면 바로 연동됩니다.
+            <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); line-height: 1.4; margin: 0;">
+              스프레드시트 [확장 프로그램] &gt; [Apps Script]에 붙여넣고 [웹 앱으로 배포(액세스 권한: 모든 사용자)]하시면 바로 연동됩니다.
             </p>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-edit" id="btn-gas-cancel">닫기</button>
-          <button type="button" class="btn btn-primary-roll" id="btn-gas-submit" style="padding: 9px 20px; font-size: 0.92rem;">
-            실행하기
-          </button>
+        <div class="dialog-footer">
+          <button type="button" class="btn btn-outline" id="btn-gas-cancel">취소</button>
+          <button type="button" class="btn btn-primary" id="btn-gas-submit">실행하기</button>
         </div>
       </div>
     </div>
 
-    <!-- 2. 학생 및 역할 목록 편집 모달 -->
-    <div class="modal-overlay" id="edit-modal">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <h3>⚙️ 학생 명단 및 학급 역할 관리</h3>
-          <button type="button" class="modal-close-btn" id="edit-modal-close">&times;</button>
+    <!-- 2. 학생 및 역할 목록 편집 모달 (shadcn Dialog) -->
+    <div class="dialog-overlay" id="edit-modal">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h3>학생 명단 및 학급 역할 관리</h3>
+          <button type="button" class="dialog-close" id="edit-modal-close" aria-label="닫기">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18"/>
+              <path d="m6 6 12 12"/>
+            </svg>
+          </button>
         </div>
-        <div class="modal-body">
-          <div class="modal-tabs">
-            <button type="button" class="modal-tab-btn active" id="tab-edit-students">👤 학생 명단 관리</button>
-            <button type="button" class="modal-tab-btn" id="tab-edit-roles">💼 학급 역할 관리</button>
+        <div class="dialog-body">
+          <div class="tabs-list" style="width: 100%; margin-bottom: 16px;">
+            <button type="button" class="tab-trigger active" id="tab-edit-students" style="flex: 1;">학생 명단</button>
+            <button type="button" class="tab-trigger" id="tab-edit-roles" style="flex: 1;">학급 역할</button>
           </div>
 
           <!-- 학생 관리 패널 -->
           <div id="panel-students">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <label class="input-label" style="margin-bottom: 0;">현재 등록된 학생 목록</label>
-              <button type="button" class="btn btn-edit" id="btn-reset-students" style="padding: 3px 8px; font-size: 0.78rem;">
-                기본 12명으로 재설정
+              <span class="form-label" style="margin-bottom: 0;">현재 등록된 학생</span>
+              <button type="button" class="btn btn-ghost" id="btn-reset-students" style="height: 26px; padding: 0 8px; font-size: 0.75rem;">
+                기본 12명 복원
               </button>
             </div>
-            <div class="tag-list-box" id="student-tag-list">
+            <div class="tag-container" id="student-tag-list">
               <!-- 동적 생성 -->
             </div>
 
-            <label class="input-label" for="new-student-input">학생 이름 추가 (쉼표로 여러 명 동시 추가 가능)</label>
+            <label class="form-label" for="new-student-input">학생 이름 추가 (쉼표로 구분하여 여러 명 입력 가능)</label>
             <div style="display: flex; gap: 8px;">
               <input 
                 type="text" 
@@ -213,7 +281,7 @@
                 class="form-input" 
                 placeholder="예: 홍길동, 이순신, 강감찬"
               />
-              <button type="button" class="btn btn-sheet-save" id="btn-add-student" style="white-space: nowrap;">
+              <button type="button" class="btn btn-secondary" id="btn-add-student">
                 추가
               </button>
             </div>
@@ -222,40 +290,40 @@
           <!-- 역할 관리 패널 -->
           <div id="panel-roles" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <label class="input-label" style="margin-bottom: 0;">현재 등록된 역할 목록</label>
-              <button type="button" class="btn btn-edit" id="btn-reset-roles" style="padding: 3px 8px; font-size: 0.78rem;">
-                기본 12개로 재설정
+              <span class="form-label" style="margin-bottom: 0;">현재 등록된 역할</span>
+              <button type="button" class="btn btn-ghost" id="btn-reset-roles" style="height: 26px; padding: 0 8px; font-size: 0.75rem;">
+                기본 12개 복원
               </button>
             </div>
-            <div class="tag-list-box" id="role-editor-list" style="max-height: 180px;">
+            <div class="tag-container" id="role-editor-list" style="max-height: 180px;">
               <!-- 동적 생성 -->
             </div>
 
-            <div style="background: #F8FAFC; padding: 12px; border-radius: 12px; border: 1.5px solid #E2E8F0; margin-top: 10px;">
-              <strong style="font-size: 0.88rem; color: #1E293B; display: block; margin-bottom: 8px;">새 역할 추가</strong>
+            <div style="background: hsl(var(--muted)/0.4); padding: 14px; border-radius: var(--radius-md); border: 1px solid hsl(var(--border)); margin-top: 10px;">
+              <span style="font-size: 0.8125rem; font-weight: 600; color: hsl(var(--foreground)); display: block; margin-bottom: 8px;">새 역할 추가</span>
               <div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px; margin-bottom: 8px;">
-                <input type="text" id="new-role-emoji" class="form-input" placeholder="이모지 (예: 🎨)" />
+                <input type="text" id="new-role-emoji" class="form-input" placeholder="이모지" />
                 <input type="text" id="new-role-name" class="form-input" placeholder="역할 이름 (예: 미술 도우미)" />
               </div>
-              <input type="text" id="new-role-duty" class="form-input" placeholder="주요 임무 (예: 미술 시간 재료를 나눠줘요)" style="margin-bottom: 8px;" />
-              <button type="button" class="btn btn-sheet-save" id="btn-add-role" style="width: 100%;">
-                + 새 역할 등록하기
+              <input type="text" id="new-role-duty" class="form-input" placeholder="주요 임무 (예: 미술 시간 교구를 챙겨요)" style="margin-bottom: 8px;" />
+              <button type="button" class="btn btn-secondary" id="btn-add-role" style="width: 100%;">
+                + 새 역할 등록
               </button>
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary-roll" onclick="closeEditModal()" style="padding: 9px 22px; font-size: 0.92rem;">
-            완료
+        <div class="dialog-footer">
+          <button type="button" class="btn btn-primary" onclick="closeEditModal()">
+            확인
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 하단 토스트 알림 메시지 -->
-    <div class="toast-notice" id="toast">알림 메시지</div>
+    <!-- 하단 토스트 알림 메시지 (shadcn Toast) -->
+    <div class="toast-bar" id="toast">알림 메시지</div>
 
-    <!-- 핵심 로직 자바스크립트 -->
+    <!-- 스크립트 로드 -->
     <script src="./script.js"></script>
   </body>
 </html>
