@@ -42,6 +42,33 @@ let state = {
   assignedDate: ""
 };
 
+// 시트 응답은 문자열 배열 또는 {name: "홍길동"} 형태일 수 있습니다.
+// 화면과 배정 로직에서는 학생 이름을 항상 문자열로 사용합니다.
+function normalizeStudentName(value) {
+  if (typeof value === "string" || typeof value === "number") {
+    const name = String(value).trim();
+    return name === "[object Object]" ? "" : name;
+  }
+  if (Array.isArray(value)) {
+    return normalizeStudentName(value.find(item => normalizeStudentName(item)));
+  }
+  if (value && typeof value === "object") {
+    for (const key of ["name", "이름", "studentName", "student_name", "student", "학생명", "성명", "value", "text"]) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const name = normalizeStudentName(value[key]);
+        if (name) return name;
+      }
+    }
+  }
+  return "";
+}
+
+function normalizeStudents(students) {
+  return Array.isArray(students)
+    ? students.map(normalizeStudentName).filter(Boolean)
+    : [];
+}
+
 // 3. 로컬 스토리지 불러오기 및 저장
 function loadState() {
   try {
@@ -49,6 +76,13 @@ function loadState() {
     if (saved) {
       const parsed = JSON.parse(saved);
       state = { ...state, ...parsed };
+      state.students = normalizeStudents(state.students);
+      if (Array.isArray(state.assignments)) {
+        state.assignments = state.assignments.map(a => ({
+          ...a,
+          student: normalizeStudentName(a.student) || "(공석)"
+        }));
+      }
       if (!Array.isArray(state.lockedRoleIds)) {
         state.lockedRoleIds = [];
       }
@@ -935,8 +969,15 @@ async function handleGasAction() {
       });
       const data = await res.json();
       if (data && data.status === "success") {
-        if (Array.isArray(data.students) && data.students.length > 0) {
-          state.students = data.students;
+        if (Array.isArray(data.students)) {
+          const students = normalizeStudents(data.students);
+          if (students.length > 0) {
+            state.students = students;
+            // 새로운 명단으로 가져오면 이전 배정 결과는 무효화합니다.
+            state.assignments = [];
+            state.lockedRoleIds = [];
+            state.assignedDate = "";
+          }
         }
         if (Array.isArray(data.roles) && data.roles.length > 0) {
           state.roles = data.roles;
