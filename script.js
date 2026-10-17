@@ -1,7 +1,8 @@
 /**
  * ==========================================================================
  * 우당탕탕 우리 반 1인 1역할 배정기 - script.js
- * 1:1 무작위 배정, Web Audio 음향, 캔버스 폭죽, 구글 시트 연동 및 A4 인쇄
+ * 1:1 무작위 배정, 역할 고정(Lock), 1:1 맞교환(Swap), 두근두근 순차 공개,
+ * 고해상도 PNG 이미지 저장, 사운드 On/Off, 구글 시트 연동 및 A4 인쇄
  * ==========================================================================
  */
 
@@ -28,13 +29,15 @@ const DEFAULT_ROLES = [
 ];
 
 // 2. 애플리케이션 상태 (localStorage 연동)
-const STORAGE_KEY = "classroom_role_assigner_v1";
+const STORAGE_KEY = "classroom_role_assigner_v2";
 
 let state = {
   className: "3학년 2반",
   students: [...DEFAULT_STUDENTS],
   roles: JSON.parse(JSON.stringify(DEFAULT_ROLES)),
   assignments: [], // { student, role }
+  lockedRoleIds: [], // 고정된 역할 ID 목록
+  isMuted: false,
   gasUrl: "",
   assignedDate: ""
 };
@@ -46,6 +49,9 @@ function loadState() {
     if (saved) {
       const parsed = JSON.parse(saved);
       state = { ...state, ...parsed };
+      if (!Array.isArray(state.lockedRoleIds)) {
+        state.lockedRoleIds = [];
+      }
     }
   } catch (e) {
     console.warn("로컬 데이터 로드 실패, 기본값 사용", e);
@@ -60,7 +66,7 @@ function saveState() {
   }
 }
 
-// 4. Web Audio API를 활용한 효과음 합성 (별도 mp3 파일 없이도 즉시 작동)
+// 4. Web Audio API를 활용한 효과음 합성
 class SoundFx {
   constructor() {
     this.ctx = null;
@@ -79,6 +85,7 @@ class SoundFx {
   }
 
   playTick() {
+    if (state.isMuted) return;
     try {
       this.init();
       if (!this.ctx) return;
@@ -95,7 +102,26 @@ class SoundFx {
     } catch (_) {}
   }
 
+  playChime() {
+    if (state.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.2);
+    } catch (_) {}
+  }
+
   playFanfare() {
+    if (state.isMuted) return;
     try {
       this.init();
       if (!this.ctx) return;
@@ -119,7 +145,7 @@ class SoundFx {
 
 const sound = new SoundFx();
 
-// 5. 귀여운 폭죽(Confetti) 파티클 시스템 (HTML5 Canvas)
+// 5. 폭죽(Confetti) 파티클 시스템 (HTML5 Canvas)
 class ConfettiCannon {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
@@ -205,13 +231,21 @@ function shuffleArray(array) {
   return arr;
 }
 
-// 7. 역할 배정 실행 로직
+// 7. 역할 배정 실행 로직 (고정된 역할 보존 + 순차 공개 연출)
 let isRolling = false;
 
 function assignRoles() {
   if (isRolling) return;
+  if (swapSourceRoleId !== null) cancelSwap();
+
   if (state.students.length === 0 || state.roles.length === 0) {
     showToast("⚠️ 학생 또는 역할 목록이 비어 있습니다!");
+    return;
+  }
+
+  // 모든 역할이 잠겨있는 경우 체크
+  if (state.lockedRoleIds.length >= state.roles.length && state.assignments.length > 0) {
+    showToast("🔒 모든 역할이 고정되어 있습니다. 고정을 해제해 주세요.");
     return;
   }
 
@@ -232,9 +266,9 @@ function assignRoles() {
   const cardElements = document.querySelectorAll(".shadcn-card");
   cardElements.forEach(card => card.classList.add("shuffling"));
 
-  // 롤링 애니메이션 (약 0.8초간 틱 소리와 함께 이름 교체 효과)
+  // 롤링 애니메이션
   let tickCount = 0;
-  const maxTicks = 12;
+  const maxTicks = 10;
   const interval = setInterval(() => {
     sound.playTick();
     renderShufflingPreview();
@@ -255,30 +289,61 @@ function renderShufflingPreview() {
   });
 }
 
-// 최종 배정 확정
+// 최종 배정 확정 (고정된 역할 보존 알고리즘)
 function finalizeAssignment() {
-  // 1:1 매칭: 학생 수가 역할 수와 다르더라도 유연하게 순서대로 매핑
-  const shuffledStudents = shuffleArray(state.students);
-  const assignments = [];
-
-  state.roles.forEach((role, idx) => {
-    const assignedStudent = shuffledStudents[idx] || "(공석)";
-    assignments.push({
-      student: assignedStudent,
-      role: role
+  // 1. 고정된 역할과 해당 학생 파악
+  const lockedAssignmentsMap = new Map();
+  if (state.assignments.length > 0) {
+    state.assignments.forEach(a => {
+      if (state.lockedRoleIds.includes(a.role.id)) {
+        lockedAssignmentsMap.set(a.role.id, a.student);
+      }
     });
+  }
+
+  // 2. 이미 고정된 학생들은 셔플 대상에서 제외
+  const lockedStudents = Array.from(lockedAssignmentsMap.values());
+  const availableStudents = state.students.filter(name => !lockedStudents.includes(name));
+  const shuffledAvailableStudents = shuffleArray(availableStudents);
+
+  // 3. 고정되지 않은 역할들에 셔플된 학생들을 1:1 매칭
+  const newAssignments = [];
+  let availableIdx = 0;
+
+  state.roles.forEach(role => {
+    if (lockedAssignmentsMap.has(role.id)) {
+      // 고정된 역할 유지
+      newAssignments.push({
+        student: lockedAssignmentsMap.get(role.id),
+        role: role
+      });
+    } else {
+      // 새로운 학생 배정
+      const student = shuffledAvailableStudents[availableIdx] || "(공석)";
+      availableIdx++;
+      newAssignments.push({
+        student: student,
+        role: role
+      });
+    }
   });
 
-  // 학생 수가 역할보다 많을 경우를 위한 보충 (1인 1역할 초과 시 공동 역할 또는 표기)
-  if (shuffledStudents.length > state.roles.length) {
-    for (let i = state.roles.length; i < shuffledStudents.length; i++) {
-      const extraStudent = shuffledStudents[i];
-      const targetIdx = i % state.roles.length;
-      assignments[targetIdx].student += `, ${extraStudent}`;
+  // 초과 인원 보충 (공동 역할)
+  if (availableIdx < shuffledAvailableStudents.length) {
+    for (let i = availableIdx; i < shuffledAvailableStudents.length; i++) {
+      const extraStudent = shuffledAvailableStudents[i];
+      const unlockedRoles = state.roles.filter(r => !lockedAssignmentsMap.has(r.id));
+      if (unlockedRoles.length > 0) {
+        const targetRole = unlockedRoles[i % unlockedRoles.length];
+        const targetAssignment = newAssignments.find(a => a.role.id === targetRole.id);
+        if (targetAssignment) {
+          targetAssignment.student += `, ${extraStudent}`;
+        }
+      }
     }
   }
 
-  state.assignments = assignments;
+  state.assignments = newAssignments;
   state.assignedDate = new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
@@ -286,8 +351,67 @@ function finalizeAssignment() {
   });
 
   saveState();
-  renderAllViews();
 
+  // 순차 공개 모드 확인
+  const isSequential = document.getElementById("check-sequential-reveal")?.checked ?? true;
+
+  if (isSequential) {
+    runSequentialReveal();
+  } else {
+    renderAllViews();
+    finishRollingUI();
+    sound.playFanfare();
+    confetti.launch();
+    showToast("🎉 1인 1역할 배정이 완료되었습니다!");
+  }
+}
+
+// 두근두근 순차 공개 (Slot/Flip 애니메이션 연출)
+function runSequentialReveal() {
+  renderCards(true); // 우선 빈 상태로 렌더
+  renderTable();
+  updateStatusSummary();
+  updatePrintHeader();
+
+  const cards = document.querySelectorAll(".shadcn-card");
+  let currentCardIdx = 0;
+
+  const revealInterval = setInterval(() => {
+    if (currentCardIdx >= cards.length) {
+      clearInterval(revealInterval);
+      finishRollingUI();
+      sound.playFanfare();
+      confetti.launch();
+      showToast("🎉 모든 역할 배정이 멋지게 공개되었습니다!");
+      return;
+    }
+
+    const card = cards[currentCardIdx];
+    const roleId = Number(card.getAttribute("data-role-id"));
+    const assigned = state.assignments.find(a => a.role.id === roleId);
+
+    if (assigned) {
+      const studentNameEl = card.querySelector(".card-student-name");
+      const badgeEl = card.querySelector(".card-top-row .badge");
+      if (studentNameEl) {
+        studentNameEl.textContent = assigned.student;
+        studentNameEl.classList.remove("waiting");
+      }
+      if (badgeEl) {
+        badgeEl.className = "badge badge-success";
+        badgeEl.textContent = "임명완료";
+      }
+    }
+
+    card.classList.remove("shuffling");
+    card.classList.add("flip-reveal");
+    sound.playTick();
+
+    currentCardIdx++;
+  }, 160);
+}
+
+function finishRollingUI() {
   isRolling = false;
   const rollBtn = document.getElementById("btn-roll-roles");
   if (rollBtn) {
@@ -304,14 +428,98 @@ function finalizeAssignment() {
       역할 배정하기
     `;
   }
-
-  // 팡파레 효과음 및 폭죽 축하!
-  sound.playFanfare();
-  confetti.launch();
-  showToast("🎉 1인 1역할 배정이 멋지게 완료되었습니다!");
+  const cards = document.querySelectorAll(".shadcn-card");
+  cards.forEach(c => c.classList.remove("shuffling"));
 }
 
-// 8. 렌더링 함수들
+// 8. 역할 고정 (Lock) 기능
+function toggleLockRole(roleId) {
+  const isAssigned = state.assignments.some(a => a.role.id === roleId && a.student !== "배정 대기중");
+  if (!isAssigned) {
+    showToast("⚠️ 배정된 이후에 역할을 고정할 수 있습니다.");
+    return;
+  }
+
+  const idx = state.lockedRoleIds.indexOf(roleId);
+  if (idx > -1) {
+    state.lockedRoleIds.splice(idx, 1);
+    showToast("🔓 역할 고정이 해제되었습니다.");
+  } else {
+    state.lockedRoleIds.push(roleId);
+    showToast("🔒 역할이 고정되었습니다. 다음 셔플 시 유지됩니다.");
+  }
+
+  sound.playChime();
+  saveState();
+  renderCards();
+  updateStatusSummary();
+}
+
+// 9. 1:1 역할 맞교환 (Swap) 기능
+let swapSourceRoleId = null;
+
+function handleCardClickForSwap(roleId) {
+  if (swapSourceRoleId === null) return;
+
+  if (swapSourceRoleId === roleId) {
+    cancelSwap();
+    return;
+  }
+
+  // 맞교환 실행
+  completeSwap(roleId);
+}
+
+function startSwap(roleId, e) {
+  if (e) e.stopPropagation();
+
+  if (state.assignments.length === 0) {
+    showToast("⚠️ 먼저 역할을 배정해주세요.");
+    return;
+  }
+
+  swapSourceRoleId = roleId;
+  const sourceAssignment = state.assignments.find(a => a.role.id === roleId);
+  const sourceName = sourceAssignment ? sourceAssignment.student : "담당자";
+  const sourceRoleName = sourceAssignment ? sourceAssignment.role.name : "역할";
+
+  const banner = document.getElementById("swap-banner");
+  const bannerText = document.getElementById("swap-banner-text");
+  if (banner && bannerText) {
+    bannerText.innerHTML = `<strong>🔄 [${escapeHtml(sourceName)} - ${escapeHtml(sourceRoleName)}]</strong> 과 맞교환할 다른 카드를 클릭하세요.`;
+    banner.classList.add("active");
+  }
+
+  renderCards();
+  showToast("🔄 교환할 다른 카드를 클릭해 주세요.");
+}
+
+function completeSwap(targetRoleId) {
+  const sourceAssignment = state.assignments.find(a => a.role.id === swapSourceRoleId);
+  const targetAssignment = state.assignments.find(a => a.role.id === targetRoleId);
+
+  if (sourceAssignment && targetAssignment) {
+    const tempStudent = sourceAssignment.student;
+    sourceAssignment.student = targetAssignment.student;
+    targetAssignment.student = tempStudent;
+
+    saveState();
+    sound.playChime();
+    showToast(`✨ [${sourceAssignment.role.name}]과 [${targetAssignment.role.name}]의 담당 학생이 맞교환되었습니다!`);
+  }
+
+  cancelSwap();
+  renderAllViews();
+}
+
+function cancelSwap() {
+  swapSourceRoleId = null;
+  const banner = document.getElementById("swap-banner");
+  if (banner) banner.classList.remove("active");
+  renderCards();
+}
+
+// 10. 뷰 렌더링
 function renderAllViews() {
   renderCards();
   renderTable();
@@ -319,31 +527,60 @@ function renderAllViews() {
   updatePrintHeader();
 }
 
-function renderCards() {
+function renderCards(isWaitingState = false) {
   const container = document.getElementById("cards-grid");
   if (!container) return;
 
   container.innerHTML = "";
 
   state.roles.forEach((role, idx) => {
-    // 배정된 학생 찾기
     const assigned = state.assignments.find(a => a.role.id === role.id);
-    const studentName = assigned ? assigned.student : "배정 대기중";
-    const isAssigned = Boolean(assigned);
+    const isAssigned = Boolean(assigned && assigned.student && assigned.student !== "(공석)");
+    const studentName = isWaitingState ? "???" : (isAssigned ? assigned.student : "배정 대기중");
+    const isLocked = state.lockedRoleIds.includes(role.id);
+    const isSwapSource = swapSourceRoleId === role.id;
+    const isSwapCandidate = swapSourceRoleId !== null && !isSwapSource;
 
     const card = document.createElement("div");
-    card.className = "shadcn-card" + (isAssigned ? " just-assigned" : "");
+    card.className = [
+      "shadcn-card",
+      isLocked ? "locked-card" : "",
+      isSwapSource ? "swap-source" : "",
+      isSwapCandidate ? "swap-target-candidate" : ""
+    ].filter(Boolean).join(" ");
+
     card.setAttribute("data-theme", role.theme || "yellow");
+    card.setAttribute("data-role-id", role.id);
+
+    // 맞교환 모드일 때 카드 클릭 이벤트
+    if (swapSourceRoleId !== null) {
+      card.onclick = () => handleCardClickForSwap(role.id);
+    }
 
     card.innerHTML = `
       <div class="card-top-row">
         <div class="card-index">
           <span style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">#</span>
           <span>${idx + 1}</span>
+          ${isLocked ? '<span style="font-size:0.75rem; color:#D97706; font-weight:700; margin-left:3px;">[고정]</span>' : ""}
         </div>
-        <span class="badge ${isAssigned ? "badge-success" : "badge-muted"}">
-          ${isAssigned ? "임명완료" : "대기"}
-        </span>
+        <div class="card-top-actions">
+          <span class="badge ${isAssigned && !isWaitingState ? "badge-success" : "badge-muted"}">
+            ${isAssigned && !isWaitingState ? "임명완료" : "대기"}
+          </span>
+          <button type="button" class="card-action-btn ${isLocked ? "is-locked" : ""}" onclick="toggleLockRole(${role.id})" title="${isLocked ? "고정 해제" : "이 역할 고정하기"}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              ${isLocked 
+                ? '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>' 
+                : '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>'}
+            </svg>
+          </button>
+          <button type="button" class="card-action-btn" onclick="startSwap(${role.id}, event)" title="다른 역할과 맞교환">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="card-role-header">
         <div class="card-role-avatar" title="${escapeHtml(role.name)}">
@@ -353,7 +590,7 @@ function renderCards() {
           <div class="card-role-name">${escapeHtml(role.name)}</div>
           <div class="card-student-box">
             <span class="student-tag-label">담당:</span>
-            <span class="card-student-name ${isAssigned ? "" : "waiting"}">${escapeHtml(studentName)}</span>
+            <span class="card-student-name ${isAssigned && !isWaitingState ? "" : "waiting"}">${escapeHtml(studentName)}</span>
           </div>
         </div>
       </div>
@@ -375,6 +612,7 @@ function renderTable() {
   state.roles.forEach((role, idx) => {
     const assigned = state.assignments.find(a => a.role.id === role.id);
     const studentName = assigned ? assigned.student : "-";
+    const isLocked = state.lockedRoleIds.includes(role.id);
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -383,6 +621,7 @@ function renderTable() {
         <div class="table-role-inline">
           <span style="font-size: 1.15rem;">${role.emoji || "⭐"}</span>
           <span>${escapeHtml(role.name)}</span>
+          ${isLocked ? '<span style="font-size:0.75rem; color:#D97706;">🔒</span>' : ""}
         </div>
       </td>
       <td style="font-weight: 700; color: hsl(var(--foreground)); font-size: 0.95rem;">${escapeHtml(studentName)}</td>
@@ -401,9 +640,20 @@ function updateStatusSummary() {
   const studentCountEl = document.getElementById("stat-student-count");
   const roleCountEl = document.getElementById("stat-role-count");
   const assignedStatusEl = document.getElementById("stat-assigned-status");
+  const lockedBox = document.getElementById("stat-locked-box");
+  const lockedCountEl = document.getElementById("stat-locked-count");
 
   if (studentCountEl) studentCountEl.textContent = `${state.students.length}명`;
   if (roleCountEl) roleCountEl.textContent = `${state.roles.length}개`;
+
+  if (lockedBox && lockedCountEl) {
+    if (state.lockedRoleIds.length > 0) {
+      lockedBox.style.display = "flex";
+      lockedCountEl.textContent = `${state.lockedRoleIds.length}개`;
+    } else {
+      lockedBox.style.display = "none";
+    }
+  }
 
   if (assignedStatusEl) {
     if (state.assignments.length > 0) {
@@ -444,7 +694,7 @@ function updatePrintHeader() {
   }
 }
 
-// 9. 교실 게시판 부착용 A4 인쇄
+// 11. 교실 게시판 부착용 A4 인쇄
 function handlePrint() {
   if (state.assignments.length === 0) {
     const proceed = confirm("아직 역할 배정이 되지 않았습니다. 빈 양식 그대로 인쇄하시겠습니까?");
@@ -454,20 +704,200 @@ function handlePrint() {
   window.print();
 }
 
-// 10. 구글 스프레드시트 (Apps Script) 연동 모달 & 기능
+// 12. 고해상도 PNG 이미지 다운로드 (알림장, 하이클래스, 클래스팅 게시용)
+function exportToPng() {
+  if (state.assignments.length === 0) {
+    showToast("⚠️ 먼저 역할을 배정해주세요.");
+    return;
+  }
+
+  showToast("🖼️ 고화질 이미지 생성 중...");
+
+  const width = 1600;
+  const height = 1180;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+
+  // 배경 칠하기
+  ctx.fillStyle = "#FAFAFA";
+  ctx.fillRect(0, 0, width, height);
+
+  // 안쪽 화이트 보드 프레임
+  ctx.fillStyle = "#FFFFFF";
+  roundRect(ctx, 40, 40, width - 80, height - 80, 24);
+  ctx.fill();
+  ctx.strokeStyle = "#E2E8F0";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // 상단 헤더
+  ctx.fillStyle = "#0F172A";
+  ctx.font = "bold 44px 'Pretendard', sans-serif";
+  ctx.textAlign = "center";
+  const titleText = `${state.className || "우리 반"} 1인 1역할 배정표`;
+  ctx.fillText(titleText, width / 2, 115);
+
+  ctx.fillStyle = "#64748B";
+  ctx.font = "20px 'Pretendard', sans-serif";
+  const dateText = `배정일: ${state.assignedDate || new Date().toLocaleDateString("ko-KR")} | 행복한 우리 교실, 서로 돕고 배려해요 🌱`;
+  ctx.fillText(dateText, width / 2, 155);
+
+  // 구분선
+  ctx.strokeStyle = "#E2E8F0";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(80, 185);
+  ctx.lineTo(width - 80, 185);
+  ctx.stroke();
+
+  // 12개 카드 그리기 (3열 x 4행)
+  const cols = 3;
+  const cardWidth = 460;
+  const cardHeight = 185;
+  const startX = 80;
+  const startY = 215;
+  const gapX = 30;
+  const gapY = 25;
+
+  const pastelColors = {
+    yellow: "#FEF9C3",
+    blue: "#E0F2FE",
+    green: "#DCFCE7",
+    pink: "#FCE7F3",
+    purple: "#F3E8FF",
+    orange: "#FFEDD5"
+  };
+
+  state.roles.slice(0, 12).forEach((role, idx) => {
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    const x = startX + col * (cardWidth + gapX);
+    const y = startY + row * (cardHeight + gapY);
+
+    const assigned = state.assignments.find(a => a.role.id === role.id);
+    const studentName = assigned ? assigned.student : "-";
+
+    // 카드 배경
+    ctx.fillStyle = "#FFFFFF";
+    roundRect(ctx, x, y, cardWidth, cardHeight, 16);
+    ctx.fill();
+    ctx.strokeStyle = "#CBD5E1";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 상단 번호 & 이모지 박스
+    const avatarColor = pastelColors[role.theme] || "#F1F5F9";
+    ctx.fillStyle = avatarColor;
+    roundRect(ctx, x + 16, y + 16, 56, 56, 12);
+    ctx.fill();
+
+    ctx.font = "30px 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(role.emoji || "⭐", x + 44, y + 55);
+
+    // 역할명
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 22px 'Pretendard', sans-serif";
+    ctx.fillText(`${idx + 1}. ${role.name}`, x + 86, y + 42);
+
+    // 담당 학생
+    ctx.fillStyle = "#475569";
+    ctx.font = "16px 'Pretendard', sans-serif";
+    ctx.fillText("담당:", x + 86, y + 68);
+
+    ctx.fillStyle = "#1E293B";
+    ctx.font = "bold 22px 'Pretendard', sans-serif";
+    ctx.fillText(studentName, x + 130, y + 68);
+
+    // 임무 설명 박스
+    ctx.fillStyle = "#F8FAFC";
+    roundRect(ctx, x + 16, y + 88, cardWidth - 32, 80, 8);
+    ctx.fill();
+    ctx.strokeStyle = "#E2E8F0";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "15px 'Pretendard', sans-serif";
+    ctx.fillText("임무: " + (role.duty || ""), x + 26, y + 132);
+  });
+
+  // 하단 안내 & 확인 문구
+  ctx.fillStyle = "#64748B";
+  ctx.font = "17px 'Pretendard', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("우리가 함께 가꾸는 행복한 교실! 맡은 책임을 성실히 실천해요 💛  담임교사 확인: ________________ (인)", width / 2, height - 70);
+
+  // 다운로드 트리거
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const safeName = (state.className || "우리반").replace(/\s+/g, "_");
+    link.download = `${safeName}_1인1역할_배정표.png`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("✅ 고화질 이미지가 다운로드되었습니다!");
+  });
+}
+
+// 둥근 사각형 캔버스 그리기 유틸리티
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+// 13. 사운드 켜기/끄기 토글
+function toggleSound() {
+  state.isMuted = !state.isMuted;
+  saveState();
+  updateSoundUI();
+  showToast(state.isMuted ? "🔇 효과음이 꺼졌습니다." : "🔊 효과음이 켜졌습니다.");
+  if (!state.isMuted) sound.playTick();
+}
+
+function updateSoundUI() {
+  const iconOn = document.getElementById("sound-icon-on");
+  const iconOff = document.getElementById("sound-icon-off");
+  const label = document.getElementById("sound-label");
+
+  if (state.isMuted) {
+    if (iconOn) iconOn.style.display = "none";
+    if (iconOff) iconOff.style.display = "inline-block";
+    if (label) label.textContent = "음소거";
+  } else {
+    if (iconOn) iconOn.style.display = "inline-block";
+    if (iconOff) iconOff.style.display = "none";
+    if (label) label.textContent = "소리 켬";
+  }
+}
+
+// 14. 구글 스프레드시트 (Apps Script) 연동 모달 & 기능
 function openGasModal(mode = "load") {
   const modal = document.getElementById("gas-modal");
   const urlInput = document.getElementById("gas-url-input");
   const modalTitle = document.getElementById("gas-modal-title");
 
   if (modalTitle) {
-    modalTitle.innerHTML = mode === "load" ? "🔄 구글 시트에서 불러오기" : "💾 구글 시트에 배정 결과 저장";
+    modalTitle.innerHTML = mode === "load" ? "구글 시트에서 불러오기" : "구글 시트에 배정 결과 저장";
   }
   if (urlInput) {
     urlInput.value = state.gasUrl || "";
   }
 
-  // 현재 모드 표시
   modal.setAttribute("data-action-mode", mode);
   modal.classList.add("open");
 }
@@ -499,7 +929,6 @@ async function handleGasAction() {
 
   try {
     if (mode === "load") {
-      // Apps Script GET 요청 (학생 목록, 역할 목록 가져오기)
       const res = await fetch(`${url}?action=getData`, {
         method: "GET",
         mode: "cors"
@@ -523,7 +952,6 @@ async function handleGasAction() {
         throw new Error(data.message || "시트 데이터 형식 불일치");
       }
     } else {
-      // Apps Script POST 요청 (배정 결과 저장하기)
       const payload = {
         action: "saveAssignments",
         className: state.className,
@@ -531,7 +959,6 @@ async function handleGasAction() {
         assignments: state.assignments
       };
 
-      // Google Apps Script는 text/plain 형식 전송 시 CORS 프리플라이트 없이 원활하게 수신
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -547,12 +974,11 @@ async function handleGasAction() {
     }
   } catch (err) {
     console.warn("GAS 통신 알림:", err);
-    // Apps Script 미배포 상태이거나 CORS 환경에서의 시뮬레이션 지원
     closeGasModal();
     if (mode === "load") {
-      showToast("💡 시트 연결 대기: 입력하신 URL이 저장되었습니다. (추후 배포 후 자동 연동)");
+      showToast("💡 시트 연결 주소가 저장되었습니다. (추후 배포 후 자동 연동)");
     } else {
-      showToast("💡 시트 저장 요청이 전송되었습니다. (배포된 Apps Script에 전달됨)");
+      showToast("💡 시트 저장 요청이 전송되었습니다.");
     }
   } finally {
     if (actionBtn) {
@@ -562,7 +988,7 @@ async function handleGasAction() {
   }
 }
 
-// 11. 학생 및 역할 편집 모달
+// 15. 학생 및 역할 편집 모달
 function openEditModal(defaultTab = "students") {
   const modal = document.getElementById("edit-modal");
   renderEditModalTabs(defaultTab);
@@ -620,7 +1046,6 @@ function addStudentFromInput() {
   const rawValue = input ? input.value.trim() : "";
   if (!rawValue) return;
 
-  // 쉼표나 줄바꿈으로 여러 명 일괄 입력 지원
   const names = rawValue.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
   if (names.length > 0) {
     state.students.push(...names);
@@ -730,10 +1155,10 @@ function resetDefaultRoles() {
   }
 }
 
-// 12. 학급 이름 변경 프롬프트
+// 16. 학급 이름 변경 프롬프트
 function promptClassName() {
   const current = state.className || "3학년 2반";
-  const updated = prompt("학급 이름을 입력해 주세요 (예: 4학년 1반, 사랑반):", current);
+  const updated = prompt("학급 이름을 입력해 주세요 (예: 4학년 1반, 슬기반):", current);
   if (updated && updated.trim()) {
     state.className = updated.trim();
     saveState();
@@ -743,7 +1168,7 @@ function promptClassName() {
   }
 }
 
-// 13. 토스트 알림 헬퍼
+// 17. 토스트 알림 헬퍼
 let toastTimer = null;
 function showToast(message) {
   const toast = document.getElementById("toast");
@@ -758,7 +1183,7 @@ function showToast(message) {
   }, 2600);
 }
 
-// 14. HTML 문자열 이스케이프 (XSS 방지)
+// 18. HTML 이스케이프
 function escapeHtml(text) {
   if (!text) return "";
   return String(text)
@@ -769,13 +1194,12 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-// 15. Apps Script 템플릿 코드 복사 편의기능
+// 19. Google Apps Script 템플릿 코드 복사
 function copyAppsScriptTemplate() {
   const code = `// Google Apps Script (도구 > 스크립트 편집기에 붙여넣고 웹 앱으로 배포)
 function doGet(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
-  // A열: 학생이름, B열: 역할이름, C열: 이모지, D열: 임무
   var students = [];
   var roles = [];
   for (var i = 1; i < data.length; i++) {
@@ -790,13 +1214,12 @@ function doGet(e) {
       });
     }
   }
-  var output = ContentService.createTextOutput(JSON.stringify({
+  return ContentService.createTextOutput(JSON.stringify({
     status: 'success',
     className: sheet.getName(),
     students: students,
     roles: roles
   })).setMimeType(ContentService.MimeType.JSON);
-  return output;
 }
 
 function doPost(e) {
@@ -828,25 +1251,25 @@ function doPost(e) {
   });
 }
 
-// 16. 초기화 및 이벤트 리스너 등록
+// 20. 초기화 및 이벤트 리스너 등록
 document.addEventListener("DOMContentLoaded", () => {
   loadState();
 
-  // 폭죽 캔버스 인스턴스화
   confetti = new ConfettiCannon("confetti-canvas");
 
-  // 초기 렌더링
   renderAllViews();
+  updateSoundUI();
 
-  // 버튼 이벤트 연결
+  // 메인 액션 버튼
   const rollBtn = document.getElementById("btn-roll-roles");
   if (rollBtn) rollBtn.addEventListener("click", assignRoles);
 
   const resetBtn = document.getElementById("btn-reset-assignments");
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
-      if (confirm("현재 배정된 결과를 초기화하시겠습니까?")) {
+      if (confirm("현재 배정된 결과를 초기화하시겠습니까? (고정된 역할 설정도 해제됩니다)")) {
         state.assignments = [];
+        state.lockedRoleIds = [];
         state.assignedDate = "";
         saveState();
         renderAllViews();
@@ -855,7 +1278,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 상단 헤더 버튼
+  // 상단 툴바 버튼
   const btnSheetLoad = document.getElementById("btn-sheet-load");
   if (btnSheetLoad) btnSheetLoad.addEventListener("click", () => openGasModal("load"));
 
@@ -865,11 +1288,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnEditList = document.getElementById("btn-edit-list");
   if (btnEditList) btnEditList.addEventListener("click", () => openEditModal("students"));
 
+  const btnSoundToggle = document.getElementById("btn-sound-toggle");
+  if (btnSoundToggle) btnSoundToggle.addEventListener("click", toggleSound);
+
+  const btnSaveImage = document.getElementById("btn-save-image");
+  if (btnSaveImage) btnSaveImage.addEventListener("click", exportToPng);
+
   const btnPrintA4 = document.getElementById("btn-print-a4");
   if (btnPrintA4) btnPrintA4.addEventListener("click", handlePrint);
 
   const classTag = document.getElementById("class-name-tag");
   if (classTag) classTag.addEventListener("click", promptClassName);
+
+  const btnCancelSwap = document.getElementById("btn-cancel-swap");
+  if (btnCancelSwap) btnCancelSwap.addEventListener("click", cancelSwap);
 
   // 뷰 전환 탭
   const tabCards = document.getElementById("tab-cards-view");
@@ -939,12 +1371,32 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnResetRoles = document.getElementById("btn-reset-roles");
   if (btnResetRoles) btnResetRoles.addEventListener("click", resetDefaultRoles);
 
-  // 전역 노출 (HTML onclick 인라인 호출 호환성 보장)
+  // 키보드 단축키 지원 (Space: 배정, Esc: 맞교환 취소 / 모달 닫기)
+  window.addEventListener("keydown", (e) => {
+    const isTyping = ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName);
+    if (e.key === "Escape") {
+      if (swapSourceRoleId !== null) cancelSwap();
+      closeGasModal();
+      closeEditModal();
+    } else if (e.key === " " && !isTyping && !isRolling) {
+      const gasModal = document.getElementById("gas-modal");
+      const editModal = document.getElementById("edit-modal");
+      if (!gasModal?.classList.contains("open") && !editModal?.classList.contains("open")) {
+        e.preventDefault();
+        assignRoles();
+      }
+    }
+  });
+
+  // 전역 함수 노출
   window.removeStudent = removeStudent;
   window.removeRole = removeRole;
   window.closeEditModal = closeEditModal;
   window.closeGasModal = closeGasModal;
   window.promptClassName = promptClassName;
+  window.toggleLockRole = toggleLockRole;
+  window.startSwap = startSwap;
+  window.cancelSwap = cancelSwap;
 
   // 모달 바깥 배경 클릭 시 닫기
   window.addEventListener("click", (e) => {
@@ -954,4 +1406,3 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === editModal) closeEditModal();
   });
 });
-
