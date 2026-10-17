@@ -89,7 +89,7 @@ function normalizeRoles(roles) {
     if (!name) return null;
     const emoji = normalizeStudentName(role.emoji ?? role["이모지"] ?? role.icon) || "💼";
     const duty = normalizeStudentName(role.duty ?? role["임무"] ?? role["주요 임무"] ??
-      role.description ?? role.task) || "";
+      role.desc ?? role.description ?? role.task ?? role["역할설명"]) || "";
     return {
       id: role.id ?? index + 1,
       name, emoji, duty,
